@@ -1,6 +1,7 @@
 import numpy as np
-from util import check_X_y
+from util import check_X_y, DatasetsEnum, TestData, plot_qda_decision_surface, plot_qda_pdf_contours
 from math_util import compute_class_means, compute_class_priors, compute_class_covariances
+from qda import QDA
 import matplotlib.pyplot as plt
 
 class RDA:
@@ -18,12 +19,11 @@ class RDA:
         self.classes_ = np.unique(y)
         self.means_ = compute_class_means(X, y)
         self.priors_ = compute_class_priors(y)
-
-        # Compute regularized covariances for RDA
         self.cov_ = self.compute_regularized_covariances(X, y)
         
         return self
     
+    # Function to compute pooled variance
     def compute_pooled_covariance(X, y):
         classes = np.unique(y)
         covariances = [np.cov(X[y == cls], rowvar=False) for cls in classes]
@@ -32,6 +32,7 @@ class RDA:
 
         return pooled_cov
 
+    # Function to compute regularized covariances for RDA
     def compute_regularized_covariances(self, X, y):
         class_cov = compute_class_covariances(X, y, self.means_)
         pooled_cov = self.compute_pooled_covariance(X, y)
@@ -49,5 +50,25 @@ class RDA:
             (self.gamma / sigma_k_lambda.shape[0]) * np.trace(sigma_k_lambda) * np.eye(sigma_k_lambda.shape[0])
 
         return regularized_covs
+
+
+if __name__ == "__main__":
+
+    X_train, y_train, X_test, y_test = TestData(DatasetsEnum.FISH).get_train_test_data()
+
+    rda = RDA().fit(X_train, y_train)
+
+    # Use existing classes from QDA
+    # rda_predictions = QDA.predict(rda, X_test)
+
+    # rda_probabilities = QDA.predict_proba(rda, X_test)
+
+    # plot_qda_pdf_contours(rda, X_train, y_train)
+    # plot_qda_pdf_contours(rda, X_test, y_test)
+
+    # plot_qda_decision_surface(rda, X_test, y_test)
+
+
+
 
 
