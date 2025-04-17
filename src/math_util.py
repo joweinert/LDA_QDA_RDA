@@ -1,7 +1,11 @@
 import numpy as np
 
+# Our dtypes
+Number = float | int
+ClassLabel = int | str
 
-def compute_class_means(X, y):
+
+def compute_class_means(X: np.ndarray, y: np.ndarray) -> dict:
     """Computes the class means (μ_k) for each class k.
     The means are computed as the average of the samples per claass.
 
@@ -16,15 +20,13 @@ def compute_class_means(X, y):
     means = {k: np.zeros(n_features) for k in np.unique(y)}
 
     for k in means.keys():
-        # means[k] = np.mean(X[y == k], axis=0)
         means[k] = np.sum(X[y == k], axis=0) / np.sum(y == k)
+        
     return means
 
 
-def compute_class_covariances(X, y, means):
-    """Computes the covariance matrices (Σ_k) for each class k.
-    The covariance is computed as the average of the outer product of the
-    difference between each sample and the class mean.
+def compute_class_covariances(X: np.ndarray, y: np.ndarray, means:dict) -> dict:
+    """Computes the uinbiased class-specific covariance matrices (Σ_k).
     The covariance is computed as Σ_k = 1/(n_k - 1) * Σ_{x_i ∈ ω_k} (x_i - μ_k)(x_i - μ_k)^T.
 
     Args:
@@ -35,7 +37,6 @@ def compute_class_covariances(X, y, means):
     Returns:
         covariances: dict of class covariances {class_label_k: Σ_k} for each class k.
     """
-    
     # init covariance dict
     n_features = X.shape[1]
     covariances = {k: np.zeros((n_features, n_features)) for k in means.keys()}
@@ -49,7 +50,7 @@ def compute_class_covariances(X, y, means):
     return covariances
 
 
-def compute_class_priors(y):
+def compute_class_priors(y: np.ndarray) -> dict:
     """Computes P̂(ω_k)=n_k/n for each class on the training data (the prior).
 
     Args:
@@ -60,4 +61,5 @@ def compute_class_priors(y):
     """
     unique, counts = np.unique(y, return_counts=True)
     priors = {k: n / len(y) for k, n in zip(unique, counts)}
+    
     return priors
