@@ -4,7 +4,7 @@ import numpy as np
 
 
 class RDA(DiscriminantAnalysis):
-    def __init__(self, lambda_=0.5, gamma=0.0):
+    def __init__(self, lambda_ = 0.3, gamma = 0.2):
         super().__init__()
         self.lambda_ = lambda_
         self.gamma = gamma

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from enum import Enum
 from sklearn.datasets import load_iris, load_wine, load_breast_cancer, load_digits
 from sklearn.model_selection import train_test_split
@@ -155,3 +156,48 @@ def check_X(X):
         raise ValueError("X contains NaNs or Infs")
 
     return X
+
+
+def plot_decision_surface(model, X, y,
+                          ax=None, title=None,
+                          h=0.02, alpha=0.30, cmap="coolwarm"):
+    """
+    Visualise a 2‑D decision surface.
+
+    Parameters
+    ----------
+    model  : fitted object with a .predict(X) method
+    X, y   : ndarray, shape (n_samples, 2)   training data
+    ax     : existing matplotlib Axes or None (creates new figure)
+    title  : str  title for the plot
+    h      : float grid step in the same units as X
+    alpha  : float fill transparency for regions
+    cmap   : matplotlib colormap name
+    """
+    if X.shape[1] != 2:
+        raise ValueError("X must be 2‑D for boundary plotting.")
+
+    # 1 ─── mesh grid covering the data range
+    x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
+    y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                         np.arange(y_min, y_max, h))
+
+    # 2 ─── model predictions on the grid
+    grid = np.c_[xx.ravel(), yy.ravel()]
+    Z = model.predict(grid).reshape(xx.shape)
+
+    # 3 ─── draw filled contours + scatter of training points
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.contourf(xx, yy, Z, alpha=alpha, cmap=cmap,
+                levels=np.arange(Z.max()+2)-0.5)  # one colour per class
+    scat = ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap,
+                      edgecolor='k', s=25)
+
+    # cosmetics
+    ax.set_xlim(xx.min(), xx.max()); ax.set_ylim(yy.min(), yy.max())
+    ax.set_xlabel(r"$x_1$");          ax.set_ylabel(r"$x_2$")
+    ax.set_title(title or model.__class__.__name__)
+    ax.set_aspect("equal", adjustable="box")
+    return ax
