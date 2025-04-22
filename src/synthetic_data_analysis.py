@@ -4,6 +4,8 @@ from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
 from util import plot_decision_surface
 from sklearn.model_selection import KFold
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.datasets import load_iris, load_wine, load_breast_cancer, load_digits
 from lda import LDA
 from qda import QDA
 from rda import RDA
@@ -81,6 +83,22 @@ def cv_accuracy(clf, X, y, k=10):
         scores.append((clf_.predict(Xte) == yte).mean())
     return np.mean(scores)
 
+def plot_with_real_datasets():
+    # Real datasets
+    X_iris, y_iris = load_iris(return_X_y=True)
+    X_wine, y_wine = load_wine(return_X_y=True)
+    X_cancer, y_cancer = load_breast_cancer(return_X_y=True)
+    X_digits, y_digits = load_digits(return_X_y=True)
+
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
+    plot_decision_surface(lda, X_iris, y_iris, ax=axes[0], title="LDA")
+    plot_decision_surface(qda, X_iris, y_iris, ax=axes[1], title="QDA")
+    plot_decision_surface(rda, X_iris, y_iris, ax=axes[2],
+                        title=r"RDA  ($\lambda=0.3,\;\gamma=0.2$)")
+    fig.tight_layout();  plt.show()
+
+    # Add PCA if we want to work with these as well
+
 
 if __name__ == "__main__":
     samples = 250
@@ -108,6 +126,12 @@ if __name__ == "__main__":
     qda = QDA().fit(X_diff, y_diff)
     rda = RDA().fit(X_diff, y_diff)
 
+    models = {
+        "LDA": lda,
+        "QDA": qda,
+        "RDA": rda
+    }
+
     fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
     plot_decision_surface(lda, X_diff, y_diff, ax=axes[0], title="LDA")
     plot_decision_surface(qda, X_diff, y_diff, ax=axes[1], title="QDA")
@@ -117,7 +141,22 @@ if __name__ == "__main__":
 
     # gamma = 1e-3 for RDA
 
-    print("Before CV")
-    for name, clf in [("LDA", lda), ("QDA", qda), ("RDA", rda)]:
+    # Cross-validation results
+    for name, clf in models.items():
         cv_acc = cv_accuracy(clf, X_diff, y_diff, k=10).mean()
         print(f"{name:>3}: 10‑fold CV accuracy = {cv_acc:.3f}")
+
+    # Confusion matrices
+    fig, axes = plt.subplots(1,3, figsize=(8,3))
+    print("Do conf")
+    for ax, (name, clf) in zip(axes, models.items()): 
+        conf = confusion_matrix(y_diff, clf.predict(X_diff))
+        ConfusionMatrixDisplay(conf).plot(ax=ax, cmap="Blues", colorbar=False)
+        ax.set_title(name)
+    plt.tight_layout()
+    plt.show()
+
+    #plot_with_real_datasets()
+
+
+
