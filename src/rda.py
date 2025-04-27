@@ -5,8 +5,12 @@ from warnings import warn
 
 
 class RDA(DiscriminantAnalysis):
-    def __init__(self, lambda_=0.3, gamma=0.2):
-        super().__init__()
+    def __init__(self, lambda_=0.3, gamma=0.2, theoretical=False):
+        super().__init__(theoretical=theoretical)
+        if not (0 <= lambda_ <= 1):
+            raise ValueError(f"lambda_ must be in [0, 1], got {lambda_}.")
+        if not (0 <= gamma <= 1):
+            raise ValueError(f"gamma must be in [0, 1], got {gamma}.")
         self.lambda_ = lambda_
         self.gamma = gamma
         self.classifier_name = "RDA"

@@ -1,3 +1,6 @@
+##### WE AIMED TO MIRROR THE SLIDES AS CLOSE AS POSSIBLE #####
+
+
 from abc import ABC, abstractmethod
 import numpy as np
 from math_util import Number, ClassLabel
@@ -13,7 +16,13 @@ class DiscriminantAnalysis(ABC):
     It defines the basic structure and methods that should be implemented by any subclass.
     """
 
-    def __init__(self):
+    def __init__(self, theoretical=False):
+        """Initialize the DiscriminantAnalysis class.
+
+        Args:
+            theoretical (bool, optional): Use theoretical loglik computation (using inverse). Defaults to False.
+        """
+        self.theoretical = theoretical
         self.classifier_name = None  # name of the classifier (e.g. QDA, LDA, RDA)
         self._estimator_type = "classifier"
         self.means_ = None  # μ_k
@@ -59,23 +68,18 @@ class DiscriminantAnalysis(ABC):
 
         return self
 
-    def _log_likelihood(self, x: Number, k: ClassLabel = None) -> Number:
-        """Compute the log-likelihood of x given class k.
-
-        Args:
-            x (Number): _description_
-            k (ClassLabel): _description_
-
-        Raises:
-            ValueError: _description_
-
-        Returns:
-            Number: _description_
+    def _log_likelihood(self, x, k) -> Number:
         """
-        mean = self.means_[k]  # μ_k
-        cov = self._get_covariance(k)  # Σ_k
+        Compute log p(x | ω_k).
+        Toggled between:
+            - Theoretical version (slides): uses explicit inverse and determinant.
+            - Numerical version (recommended): uses slogdet and solve.
+        """
+        mean = self.means_[k]
+        cov = self._get_covariance(k)
+        diff = x - mean
 
-        sign, logdet = np.linalg.slogdet(cov)  # ln |Σ_k|
+        sign, logdet = np.linalg.slogdet(cov)
         if sign <= 0:
             raise ValueError(
                 f"""
@@ -85,20 +89,26 @@ class DiscriminantAnalysis(ABC):
                 """
             )
 
-        # Mahalanobis dist
-        diff = x - mean  # (x - μ_k)
-        # np.linalg.solve(cov, diff) computes Σ_k^{-1} (x - μ_k) by solving the linear system Σ_k * y = (x - μ_k)
-        # diff @ np.linalg.solve(cov, diff) computes (x - μ_k)^T Σ_k^{-1} (x - μ_k) which is the squared Mahalanobis distance
-        # This is equivalent to using scipy.spatial.distance.mahalanobis(x, mean, cov) or manually computing the equation
-        # but avoids computing the inverse of the covariance matrix directly
-        # therefore its numerically more stable
-        # Internally, it may use SVD, LU, or Cholesky decomposition.
-        mahalanobis = diff @ np.linalg.solve(cov, diff)  # (x - μ_k)^T Σ_k^{-1} (x - μ_k)
-        # log P(x | ω_k) = -1/2 * ( ln |Σ_k| + (x - μ_k)^T Σ_k^{-1} (x - μ_k) )
+        diff = x - mean
+
+        if self.theoretical:
+            # Theory mode wiht explicit matrix inverse
+            inv_cov = np.linalg.inv(cov)
+            mahalanobis = diff.T @ inv_cov @ diff  # (x - μ_k)^T Σ_k^{-1} (x - μ_k)
+        else:
+            # Numerical mode using solve linear system Σ_k * y = (x-μ)
+            # np.linalg.solve(cov, diff) computes Σ_k^{-1} (x - μ_k) by solving the linear system Σ_k * y = (x - μ_k)
+            # diff @ np.linalg.solve(cov, diff) computes (x - μ_k)^T Σ_k^{-1} (x - μ_k) which is the squared Mahalanobis distance
+            # This is equivalent to using scipy.spatial.distance.mahalanobis(x, mean, cov) or manually computing the equation
+            # but avoids computing the inverse of the covariance matrix directly
+            # therefore its numerically more stable
+            # Internally, it may uses LU.
+            mahalanobis = diff @ np.linalg.solve(cov, diff)  # (x - μ_k)^T Σ_k^{-1} (x - μ_k)
+            # log P(x | ω_k) = -1/2 * ( ln |Σ_k| + (x - μ_k)^T Σ_k^{-1} (x - μ_k) )
+
         loglikelihood = -0.5 * (logdet + mahalanobis)
-
         return loglikelihood
-
+    
     def predict_proba(self, X):
         """Predict class probabilities for samples in X using the QDA discriminant function.
         The probabilities are computed using the softmax function on the discriminant scores.

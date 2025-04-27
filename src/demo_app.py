@@ -13,14 +13,116 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 import pandas as pd
+from matplotlib.colors import Normalize
 
 from lda import LDA
 from qda import QDA
 from rda import RDA
 
-PICKLE_FILE = "demo_runs.pkl"
+THEORETICAL = True
+PICKLE_FILE = "../assets/demo_runs.pkl"
 PRESETS = [
-    # LDA shines: spherical perfect
+    # lambda shrinkage
+    {
+        "struct": "Elliptical, different Σ",
+        "n_per": 20,
+        "shift": 1.2,
+        "min_scale": 1.2,
+        "max_scale": 1.6,
+        "n_classes": 4,
+        "unbalanced": False,
+        "min_per": None,
+        "max_per": None,
+        "seed": 0,
+        "lam": 0.5,
+        "gam": 0.0,
+        "dim": 2,
+        "ill_conditioned": False,
+        "distribution": "normal",
+        "outlier_mode": False,
+        "jitter_mode": False,
+    },
+    # gamma shrinkage
+    {
+        "struct": "Elliptical, different Σ",
+        "n_per": 100,
+        "shift": 0.0,
+        "min_scale": 0.8,
+        "max_scale": 3.7,
+        "n_classes": 2,
+        "unbalanced": True,
+        "min_per": 95,
+        "max_per": 190,
+        "seed": 6,
+        "lam": 0.0,
+        "gam": 0.5,
+        "dim": 2,
+        "ill_conditioned": False,
+        "distribution": "normal",
+        "outlier_mode": False,
+        "jitter_mode": False,
+    },
+    # QDA shines: elliptical different covariances with overlap
+    {
+        "struct": "Elliptical, different Σ",
+        "n_per": 100,
+        "shift": 0.0,
+        "min_scale": 1.5,
+        "max_scale": 1.5,
+        "n_classes": 2,
+        "unbalanced": False,
+        "min_per": None,
+        "max_per": None,
+        "seed": 0,
+        "lam": 0.3,
+        "gam": 0.2,
+        "dim": 2,
+        "ill_conditioned": False,
+        "distribution": "normal",
+        "outlier_mode": False,
+        "jitter_mode": False,
+    },
+    # QDA shines: elliptical different covariances with overlap
+    {
+        "struct": "Elliptical, different Σ",
+        "n_per": 150,
+        "shift": 2.0,
+        "min_scale": 1.0,
+        "max_scale": 2.5,
+        "n_classes": 3,
+        "unbalanced": False,
+        "min_per": None,
+        "max_per": None,
+        "seed": 2,
+        "lam": 0.3,
+        "gam": 0.2,
+        "dim": 2,
+        "ill_conditioned": False,
+        "distribution": "normal",
+        "outlier_mode": False,
+        "jitter_mode": False,
+    },
+    # LDA shines: eliptical identical covariances with overlap
+    {
+        "struct": "Elliptical, identical Σ",
+        "n_per": 100,
+        "shift": 1.0,
+        "min_scale": 1.3,
+        "max_scale": 1.3,
+        "n_classes": 3,
+        "unbalanced": False,
+        "min_per": None,
+        "max_per": None,
+        "seed": 6,
+        "lam": 0.35,
+        "gam": 0.4,
+        "dim": 2,
+        "ill_conditioned": False,
+        "distribution": "normal",
+        "outlier_mode": False,
+        "jitter_mode": False,
+    },
+    # LDA shines: perfect spherical identical covariances
     {
         "struct": "Spherical, identical Σ",
         "n_per": 100,
@@ -36,108 +138,130 @@ PRESETS = [
         "gam": 0.2,
         "dim": 2,
         "ill_conditioned": False,
+        "distribution": "normal",
+        "outlier_mode": False,
+        "jitter_mode": False,
     },
-    # LDA decent: elliptical identical
-    {
-        "struct": "Elliptical, identical Σ",
-        "n_per": 100,
-        "shift": 2.5,
-        "min_scale": 1.0,
-        "max_scale": 1.0,
-        "n_classes": 3,
-        "unbalanced": False,
-        "min_per": None,
-        "max_per": None,
-        "seed": 7,
-        "lam": 0.3,
-        "gam": 0.3,
-        "dim": 2,
-        "ill_conditioned": False,
-    },
-    # QDA strong: different covariances, nice samples
-    {
-        "struct": "Elliptical, different Σ",
-        "n_per": 100,
-        "shift": 2.0,
-        "min_scale": 2.0,
-        "max_scale": 2.0,
-        "n_classes": 3,
-        "unbalanced": False,
-        "min_per": None,
-        "max_per": None,
-        "seed": 21,
-        "lam": 0.2,
-        "gam": 0.2,
-        "dim": 2,
-        "ill_conditioned": False,
-    },
-    # RDA necessary: different Σ + unbalanced
-    {
-        "struct": "Elliptical, different Σ",
-        "n_per": 60,
-        "shift": 2.5,
-        "min_scale": 1.5,
-        "max_scale": 1.5,
-        "n_classes": 4,
-        "unbalanced": True,
-        "min_per": 30,
-        "max_per": 80,
-        "seed": 11,
-        "lam": 0.5,
-        "gam": 0.5,
-        "dim": 2,
-        "ill_conditioned": False,
-    },
-    # RDA needed: high-dim identical Σ
-    {
-        "struct": "Elliptical, identical Σ",
-        "n_per": 80,
-        "shift": 3.0,
-        "min_scale": 1.0,
-        "max_scale": 1.0,
-        "n_classes": 3,
-        "unbalanced": False,
-        "min_per": None,
-        "max_per": None,
-        "seed": 5,
-        "lam": 0.4,
-        "gam": 0.6,
-        "dim": 50,
-        "ill_conditioned": False,
-    },
-    # RDA strong: ill-conditioned Σ
-    {
-        "struct": "Elliptical, different Σ",
-        "n_per": 40,
-        "shift": 2.0,
-        "min_scale": 1.5,
-        "max_scale": 1.5,
-        "n_classes": 3,
-        "unbalanced": False,
-        "min_per": None,
-        "max_per": None,
-        "seed": 17,
-        "lam": 0.6,
-        "gam": 0.5,
-        "dim": 30,
-        "ill_conditioned": True,
-    },
-    {
-        "struct": "Elliptical, different Σ",
-        "n_per": 50,
-        "shift": 2.3,
-        "min_scale": 3.5,
-        "max_scale": 3.5,
-        "n_classes": 4,
-        "unbalanced": False,
-        "min_per": None,
-        "max_per": None,
-        "seed": 0,
-        "lam": 0.4,
-        "gam": 0.4,
-        "dim": 2,
-        "ill_conditioned": False,
-    },
+    # # 1. LDA shines: perfect spherical identical covariances
+    # {
+    #     "struct": "Spherical, identical Σ",
+    #     "n_per": 100,
+    #     "shift": 3.0,
+    #     "min_scale": 1.0,
+    #     "max_scale": 1.0,
+    #     "n_classes": 3,
+    #     "unbalanced": False,
+    #     "min_per": None,
+    #     "max_per": None,
+    #     "seed": 42,
+    #     "lam": 0.3,
+    #     "gam": 0.2,
+    #     "dim": 2,
+    #     "ill_conditioned": False,
+    #     "distribution": "normal",
+    #     "outlier_mode": False,
+    #     "jitter_mode": False,
+    # },
+    # # 2. QDA clear winner: different elliptical covariances, enough samples
+    # {
+    #     "struct": "Elliptical, different Σ",
+    #     "n_per": 150,
+    #     "shift": 2.0,
+    #     "min_scale": 0.8,
+    #     "max_scale": 1.5,
+    #     "n_classes": 3,
+    #     "unbalanced": False,
+    #     "min_per": None,
+    #     "max_per": None,
+    #     "seed": 123,
+    #     "lam": 0.3,
+    #     "gam": 0.2,
+    #     "dim": 2,
+    #     "ill_conditioned": False,
+    #     "distribution": "normal",
+    #     "outlier_mode": False,
+    #     "jitter_mode": False,
+    # },
+    # # 3. RDA needed (dim > n_k): high dim, small samples per class
+    # {
+    #     "struct": "Elliptical, different Σ",
+    #     "n_per": 15,
+    #     "shift": 4.0,
+    #     "min_scale": 1.0,
+    #     "max_scale": 2.0,
+    #     "n_classes": 3,
+    #     "unbalanced": False,
+    #     "min_per": None,
+    #     "max_per": None,
+    #     "seed": 2024,
+    #     "lam": 0.5,
+    #     "gam": 0.3,
+    #     "dim": 20,
+    #     "ill_conditioned": False,
+    #     "distribution": "normal",
+    #     "outlier_mode": False,
+    #     "jitter_mode": False,
+    # },
+    # # 4. RDA needed (dim > n): total samples smaller than dimension
+    # {
+    #     "struct": "Elliptical, different Σ",
+    #     "n_per": 10,
+    #     "shift": 3.5,
+    #     "min_scale": 1.0,
+    #     "max_scale": 2.0,
+    #     "n_classes": 4,
+    #     "unbalanced": False,
+    #     "min_per": None,
+    #     "max_per": None,
+    #     "seed": 3030,
+    #     "lam": 0.6,
+    #     "gam": 0.4,
+    #     "dim": 50,
+    #     "ill_conditioned": False,
+    #     "distribution": "normal",
+    #     "outlier_mode": False,
+    #     "jitter_mode": False,
+    # },
+    # # 5. RDA better (jitter + outliers + t-distribution)
+    # {
+    #     "struct": "Elliptical, identical Σ",
+    #     "n_per": 80,
+    #     "shift": 2.5,
+    #     "min_scale": 0.8,
+    #     "max_scale": 1.2,
+    #     "n_classes": 3,
+    #     "unbalanced": False,
+    #     "min_per": None,
+    #     "max_per": None,
+    #     "seed": 777,
+    #     "lam": 0.4,
+    #     "gam": 0.3,
+    #     "dim": 2,
+    #     "ill_conditioned": False,
+    #     "distribution": "t",
+    #     "outlier_mode": True,
+    #     "jitter_mode": True,
+    # },
+    # # 6. Borderline case: interesting for visualization
+    # {
+    #     "struct": "Elliptical, different Σ",
+    #     "n_per": 70,
+    #     "shift": 1.5,
+    #     "min_scale": 0.7,
+    #     "max_scale": 2.0,
+    #     "n_classes": 2,
+    #     "unbalanced": False,
+    #     "min_per": None,
+    #     "max_per": None,
+    #     "seed": 9876,
+    #     "lam": 0.5,
+    #     "gam": 0.2,
+    #     "dim": 2,
+    #     "ill_conditioned": False,
+    #     "distribution": "normal",
+    #     "outlier_mode": True,
+    #     "jitter_mode": True,
+    # },
 ]
 
 
@@ -173,6 +297,7 @@ def make_dataset(
     max_per: Optional[int] = None,
     dim: int = 2,
     ill_conditioned: bool = False,
+    distribution: str = "normal",
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Generate a dataset with specified covariance structure.
@@ -192,6 +317,7 @@ def make_dataset(
         max_per (Optional[int], optional): Maximum samples per class if unbalanced. Defaults to None.
         dim (int, optional): Dimension of the data. Defaults to 2.
         ill_conditioned (bool, optional): If True, generate ill-conditioned data. Defaults to False.
+        distribution (str, optional): Distribution type. Defaults to "normal". Supported: "normal", "t".
 
     Returns:
         tuple[np.ndarray, np.ndarray]: Generated features and labels.
@@ -211,57 +337,62 @@ def make_dataset(
             angles += rng.uniform(-0.2, 0.2, n_classes)
         for a in angles:
             mus.append(shift * np.array([np.cos(a), np.sin(a)]))
-        if jitter_mode:
-            for i in range(len(mus)):
-                mus[i] += rng.normal(0, 0.4 * shift, 2)
+
     else:
         # high‑dimensional, picking a random unit direction per class
         for _ in range(n_classes):
             v = rng.normal(size=dim)
             v /= np.linalg.norm(v)  # unit length
             mus.append(shift * v)
-
+    if jitter_mode:
+        for i in range(len(mus)):
+            mus[i] += rng.normal(0, 0.4 * shift, size=dim)
     # Covs #########
     covs = []
     # Pre‑compute one ill‑conditioned matrix if we must keep them identical
     common_cov = None
-    local_scale = rng.uniform(min_scale, max_scale)
+    scales = np.linspace(min_scale, max_scale, n_classes)
     if ill_conditioned and "identical Σ" in struct:
         eig = np.logspace(0, -6, dim)
         Q, _ = np.linalg.qr(rng.normal(size=(dim, dim)))
-        common_cov = local_scale * Q @ np.diag(eig) @ Q.T
+        common_cov = scales[0] * Q @ np.diag(eig) @ Q.T
 
     for k in range(n_classes):
-        local_scale = rng.uniform(min_scale, max_scale)
         if ill_conditioned:
             if common_cov is not None:
                 cov = common_cov
             else:  # different Σ and ill‑conditioned⇒ generate per class
                 eig = np.logspace(0, -6, dim)
                 Q, _ = np.linalg.qr(rng.normal(size=(dim, dim)))
-                cov = local_scale * Q @ np.diag(eig) @ Q.T
+                cov = scales[k] * Q @ np.diag(eig) @ Q.T
         else:
             if struct.startswith("Spherical"):
-                cov = local_scale * np.eye(dim)
+                cov = scales[0] * np.eye(dim)
             elif "identical Σ" in struct:
                 base = np.eye(dim)
                 if dim == 2:
                     base = np.array([[2.0, 1.0], [1.0, 1.5]])
-                cov = local_scale * base
+                cov = scales[0] * base
             else:  # Elliptical, different Σ without ill‑conditioning
                 if dim == 2:
-                    cov = local_scale * (
+                    cov = scales[k] * (
                         np.array([[1.5, 0.8], [0.8, 1.2]]) if k % 2 == 0 else np.array([[1.8, -0.4], [-0.4, 0.7]])
                     )
                 else:
                     M = rng.standard_normal((dim, dim))
-                    cov = local_scale * (M @ M.T)
+                    cov = scales[k] * (M @ M.T)
         covs.append(cov)
 
     # Sample points
     X, y = [], []
     for cls, (mu, cov, cnt) in enumerate(zip(mus, covs, counts)):
-        X.append(rng.multivariate_normal(mu, cov, cnt))
+        if distribution == "t":
+            df = 3
+            L = np.linalg.cholesky(cov)
+            samples = rng.standard_t(df, size=(cnt, dim)) @ L.T + mu
+            X.append(samples)
+        else:
+            X.append(rng.multivariate_normal(mu, cov, cnt))
         y.append(np.full(cnt, cls))
 
     X = np.vstack(X)
@@ -308,7 +439,13 @@ def render_probability_maps(X, y, models, cmap, suffix):
         axes = np.atleast_1d(axes)
         for cls, ax in enumerate(axes):
             DecisionBoundaryDisplay.from_estimator(
-                clf, X, response_method="predict_proba", class_of_interest=cls, cmap="viridis", ax=ax
+                clf,
+                X,
+                response_method="predict_proba",
+                class_of_interest=cls,
+                cmap="viridis",
+                ax=ax,
+                norm=Normalize(vmin=0.0, vmax=1.0),
             )
             ax.scatter(X[y == cls, 0], X[y == cls, 1], c=[class_colors[cls]], edgecolor="k", s=20)
             ax.set_title(f"P(class={cls})", fontsize="small")
@@ -394,7 +531,11 @@ def render_run(
 ) -> tuple:
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, stratify=y, random_state=seed)
 
-    models_full = {"LDA": LDA(), "QDA": QDA(), "RDA": RDA(lambda_=lam, gamma=gam)}
+    models_full = {
+        "LDA": LDA(THEORETICAL),
+        "QDA": QDA(THEORETICAL),
+        "RDA": RDA(lambda_=lam, gamma=gam, theoretical=THEORETICAL),
+    }
     fitting_errors = {}
 
     for name, clf in models_full.items():
@@ -428,7 +569,11 @@ def render_run(
         X_tr_vis, X_te_vis = X_tr, X_te
 
     # Fit visual models (for decision boundary plots)
-    models_vis = {"LDA": LDA(), "QDA": QDA(), "RDA": RDA(lambda_=lam, gamma=gam)}
+    models_vis = {
+        "LDA": LDA(THEORETICAL),
+        "QDA": QDA(THEORETICAL),
+        "RDA": RDA(lambda_=lam, gamma=gam, theoretical=THEORETICAL),
+    }
     for name, clf in models_vis.items():
         try:
             clf.fit(X_tr_vis, y_tr)
@@ -467,6 +612,8 @@ def _build_run_header(run: Run, dataset: str, idx: int, n_runs: int) -> str:
     header = f"Run {n_runs - idx}: {run.config['struct']} | "
     del cfg_copy["struct"]
     for key, value in cfg_copy.items():
+        if value is None:
+            continue
         if isinstance(value, bool):
             header += f"{key} | " if value else ""
         else:
@@ -497,6 +644,7 @@ def init_presets():
                 max_per=cfg["max_per"],
                 dim=cfg["dim"],
                 ill_conditioned=cfg["ill_conditioned"],
+                distribution=cfg["distribution"],
             )
             figs_b, figs_p, cms, mets, fd, Xtr, ytr, Xte, yte, fitting_errors = render_run(
                 X, y, cfg["lam"], cfg["gam"], cfg["seed"], dim=cfg["dim"], mus=mus, covs=covs
@@ -536,7 +684,7 @@ structure = st.sidebar.selectbox(
 n_classes = st.sidebar.number_input("Number of classes", 2, 10, 2)
 unbalanced = st.sidebar.checkbox("Unbalanced classes", False)
 min_per = st.sidebar.slider("Min samples per class", 10, 500, 10, 5) if unbalanced else None
-max_per = st.sidebar.slider("Max samples per class", 10, 500, 100, 5) if unbalanced else None
+max_per = st.sidebar.slider("Max samples per class", min_per, 500, 100, 5) if unbalanced else None
 n_per = st.sidebar.slider("Samples per class", 10, 500, 100, 10, disabled=unbalanced)
 shift = st.sidebar.slider("Class-mean separation", 0.0, 10.0, 2.0, 0.1)
 if "identical" in structure:
@@ -550,6 +698,7 @@ else:
         max_scale = min_scale
 outlier_mode = st.sidebar.checkbox("Add outliers", False)
 jitter_mode = st.sidebar.checkbox("Add mean sep noise", False)
+distribution = st.sidebar.selectbox("Data distribution", ["normal", "t"], index=0)
 if structure != "Spherical, identical Σ":
     ill_conditioned = st.sidebar.checkbox("Ill conditioned covariance", False)
 else:
@@ -584,6 +733,7 @@ if run_btn:
         max_per=max_per,
         dim=dim,
         ill_conditioned=ill_conditioned,
+        distribution=distribution,
     )
     progress.progress(10)
     status.text("Render models…")
@@ -602,6 +752,7 @@ if run_btn:
         "max_scale": max_scale,
         "dim": dim,
         "ill_conditioned": ill_conditioned,
+        "distribution": distribution,
         "outlier_mode": outlier_mode,
         "jitter_mode": jitter_mode,
         "n_classes": n_classes,
@@ -637,6 +788,8 @@ for idx, run in enumerate(st.session_state.runs):
     header = _build_run_header(run, dataset, idx, n_runs)
 
     with st.expander(header, expanded=(idx == 0)):
+        if run.config["dim"] > 2:
+            st.warning("PCA projection used for visualization.")
         if show_mode == "Data distribution":
             st.pyplot(run.fig_data[dataset], use_container_width=True)
         else:
