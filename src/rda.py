@@ -1,13 +1,23 @@
 from discriminant_analysis import DiscriminantAnalysis
 from math_util import ClassLabel, compute_class_covariances
 import numpy as np
+from warnings import warn
 
 
 class RDA(DiscriminantAnalysis):
-    def __init__(self, lambda_ = 0.3, gamma = 0.2):
+    def __init__(self, lambda_=0.3, gamma=0.2):
         super().__init__()
         self.lambda_ = lambda_
         self.gamma = gamma
+        self.classifier_name = "RDA"
+        if self.lambda_ == 0 and self.gamma == 0:
+            warn("RDA is equivalent to LDA when lambda=0 and gamma=0. Consider using LDA instead for clarity.")
+        elif self.lambda_ == 1 and self.gamma == 0:
+            warn("RDA is equivalent to QDA when lambda=1 and gamma=0. Consider using QDA instead for clarity.")
+
+    def _method_applicable(self, X, y):
+        # RDA can always be applied because it regularizes
+        pass
 
     def _compute_covariances(self, X, y):
         raw_covs = compute_class_covariances(X, y, self.means_)

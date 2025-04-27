@@ -1,81 +1,6 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from enum import Enum
-from sklearn.datasets import load_iris, load_wine, load_breast_cancer, load_digits
-from sklearn.model_selection import train_test_split
 
-
-class DatasetsEnum(str, Enum):
-    """ "Enum for datasets."""
-
-    FISH = "fish"
-    IRIS = "iris"
-    WINE = "wine"
-    CANCER = "cancer"
-    DIGITS = "digits"
-    SYNTHETIC_BLOBS = "blobs"
-
-
-class TestData:
-    """Class to load datasets."""
-
-    def __init__(
-        self,
-        dataset: DatasetsEnum = DatasetsEnum.FISH,
-        test_size: float = 0.2,
-    ):
-        self.dataset = dataset
-        self.X = None
-        self.y = None
-        self.load_dataset()
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X,
-            self.y,
-            test_size=test_size,
-            random_state=42,
-            stratify=self.y,  # for balanced classes
-        )
-
-    def load_dataset(self):
-        if self.dataset == DatasetsEnum.FISH:
-            X, y = self.load_fish()
-        elif self.dataset == DatasetsEnum.IRIS:
-            X, y = load_iris(return_X_y=True)
-        elif self.dataset == DatasetsEnum.WINE:
-            X, y = load_wine(return_X_y=True)
-        elif self.dataset == DatasetsEnum.CANCER:
-            X, y = load_breast_cancer(return_X_y=True)
-        elif self.dataset == DatasetsEnum.DIGITS:
-            X, y = load_digits(return_X_y=True)
-        else:
-            raise NotImplementedError(f"Dataset {self.dataset} is not yet implemented")
-
-        self.X = X
-        self.y = y
-
-    def get_data(self):
-        return self.X, self.y
-
-    def get_train_data(self):
-        return self.X_train, self.y_train
-
-    def get_test_data(self):
-        return self.X_test, self.y_test
-
-    def get_train_test_data(self):
-        return self.X_train, self.y_train, self.X_test, self.y_test
-
-    @staticmethod
-    def load_fish():
-        """Load fish dataset."""
-        df = pd.read_csv("../data/salmon_seabass.csv")
-        df = df.drop(columns=["index"], errors="ignore")
-
-        X = df.drop(columns=["species"])
-        y = df["species"]
-
-        return np.asarray(X), np.asarray(y)
 
 
 def check_X_y(X, y):
@@ -158,9 +83,7 @@ def check_X(X):
     return X
 
 
-def plot_decision_surface(model, X, y,
-                          ax=None, title=None,
-                          h=0.02, alpha=0.30, cmap="coolwarm"):
+def plot_decision_surface(model, X, y, ax=None, title=None, h=0.02, alpha=0.30, cmap="coolwarm"):
     """
     Visualise a 2‑D decision surface.
 
@@ -178,10 +101,9 @@ def plot_decision_surface(model, X, y,
         raise ValueError("X must be 2‑D for boundary plotting.")
 
     # 1 ─── mesh grid covering the data range
-    x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
-    y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                         np.arange(y_min, y_max, h))
+    x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
+    y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
 
     # 2 ─── model predictions on the grid
     grid = np.c_[xx.ravel(), yy.ravel()]
@@ -190,14 +112,14 @@ def plot_decision_surface(model, X, y,
     # 3 ─── draw filled contours + scatter of training points
     if ax is None:
         fig, ax = plt.subplots()
-    ax.contourf(xx, yy, Z, alpha=alpha, cmap=cmap,
-                levels=np.arange(Z.max()+2)-0.5)  # one colour per class
-    scat = ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap,
-                      edgecolor='k', s=25)
+    ax.contourf(xx, yy, Z, alpha=alpha, cmap=cmap, levels=np.arange(Z.max() + 2) - 0.5)  # one colour per class
+    scat = ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap, edgecolor="k", s=25)
 
     # cosmetics
-    ax.set_xlim(xx.min(), xx.max()); ax.set_ylim(yy.min(), yy.max())
-    ax.set_xlabel(r"$x_1$");          ax.set_ylabel(r"$x_2$")
+    ax.set_xlim(xx.min(), xx.max())
+    ax.set_ylim(yy.min(), yy.max())
+    ax.set_xlabel(r"$x_1$")
+    ax.set_ylabel(r"$x_2$")
     ax.set_title(title or model.__class__.__name__)
     ax.set_aspect("equal", adjustable="box")
     return ax

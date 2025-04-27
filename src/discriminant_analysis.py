@@ -14,10 +14,17 @@ class DiscriminantAnalysis(ABC):
     """
 
     def __init__(self):
+        self.classifier_name = None  # name of the classifier (e.g. QDA, LDA, RDA)
+        self._estimator_type = "classifier"
         self.means_ = None  # μ_k
         self.priors_ = None  # P(ω_k)
         self.cov_ = None  # either dictionary of Σₖ, Σ (pooled covariance) or regularized Σₖ
         self.classes_ = None  # unique class labels
+
+    @abstractmethod
+    def _method_applicable(self, X, y):
+        """Abstract method to check if the method is applicable to the data."""
+        pass
 
     @abstractmethod
     def _compute_covariances(self, X, y):
@@ -43,6 +50,7 @@ class DiscriminantAnalysis(ABC):
             self: QDA | LDA | RDA instance with fitted parameters.
         """
         X, y = check_X_y(X, y)
+        self._method_applicable(X, y)
 
         self.classes_ = np.unique(y)
         self.means_ = compute_class_means(X, y)
@@ -69,7 +77,13 @@ class DiscriminantAnalysis(ABC):
 
         sign, logdet = np.linalg.slogdet(cov)  # ln |Σ_k|
         if sign <= 0:
-            raise ValueError(f"Covariance matrix for class {k} is not positive definite.")
+            raise ValueError(
+                f"""
+                Covariance matrix for class {k} is not positive definite.
+                {self.classifier_name} cannot be applied to this data (covariance singular).
+                Consider using RDA instead.
+                """
+            )
 
         # Mahalanobis dist
         diff = x - mean  # (x - μ_k)
@@ -175,3 +189,49 @@ class DiscriminantAnalysis(ABC):
             print("  Prior:", self.priors_[k])
             print("  Mean:", self.means_[k])
             print("  Covariance:\n", self._get_covariance(k))
+
+    def plot_proba(self, X, y):
+        """Plot class probabilities."""
+        from sklearn.inspection import DecisionBoundaryDisplay
+        import matplotlib.pyplot as plt
+        import matplotlib.cm as cm
+
+        n_features = X.shape[1]
+        if n_features > 2:
+            print(f"X has {n_features} features, only two can be used plotting")
+            print("In order to be consistent with the class structure, pls:")
+            print("Refit the model with only two features")
+            print("Use PCA n=2 and refit the model")
+            raise ValueError("X has more than 2 features")
+
+        labels = np.unique(y)
+        n_targets = len(labels)
+
+        fig, axes = plt.subplots(
+            nrows=1,
+            ncols=n_targets,
+            figsize=(n_targets * 3, 3),
+        )
+        for label in labels:
+            # plot the probability estimate provided by the classifier
+            disp = DecisionBoundaryDisplay.from_estimator(
+                self,
+                X,
+                response_method="predict_proba",
+                class_of_interest=label,
+                ax=axes[label],
+                vmin=0,
+                vmax=1,
+            )
+            axes[label].set_title(f"Class {label}")
+            # plot data predicted to belong to given class
+            mask_y_true = y == label
+            axes[label].scatter(X[mask_y_true, 0], X[mask_y_true, 1], marker="o", c="w", edgecolor="k")
+            axes[label].set(xticks=(), yticks=())
+        axes[0].set_ylabel(self.classifier_name)
+
+        ax = plt.axes([0.15, 0.04, 0.7, 0.02])
+        plt.title("Probability")
+        _ = plt.colorbar(cm.ScalarMappable(norm=None, cmap="viridis"), cax=ax, orientation="horizontal")
+        plt.suptitle(f"{self.classifier_name} Class Probabilitys")
+        plt.show()

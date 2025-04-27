@@ -5,6 +5,12 @@ from math_util import ClassLabel, compute_class_covariances
 class LDA(DiscriminantAnalysis):
     def __init__(self):
         super().__init__()
+        self.classifier_name = "LDA"
+        
+    def _method_applicable(self, X, y):
+        if X.shape[1] > X.shape[0]:
+            raise ValueError(f"LDA cannot be applied: d={X.shape[1]} > n={X.shape[0]}. Use RDA instead.")
+
 
     def _compute_covariances(self, X, y):
         class_covs = compute_class_covariances(X, y, self.means_)
