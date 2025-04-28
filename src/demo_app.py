@@ -602,7 +602,7 @@ def _build_run_header(run: Run, dataset: str, idx: int, n_runs: int) -> str:
     cfg_copy["n_samp"] = getattr(run, f"X_{dataset}").shape[0]
     if run.config["unbalanced"]:
         cfg_copy["n_samp"] = (
-            f"{cfg_copy["n_samp"]} (min_per: {run.config['min_per']}, max_per: {run.config['max_per']})"
+            f"{cfg_copy['n_samp']} (min_per: {run.config['min_per']}, max_per: {run.config['max_per']})"
         )
         del cfg_copy["min_per"], cfg_copy["max_per"], cfg_copy["unbalanced"]
 
