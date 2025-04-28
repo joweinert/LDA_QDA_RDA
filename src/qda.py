@@ -28,7 +28,7 @@ if __name__ == "__main__":
     from test import TestDiscriminantAnalysis, DatasetsEnum
     from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as SkQDA
 
-    test_instance = TestDiscriminantAnalysis(QDA, SkQDA, dataset=DatasetsEnum.FISH)
+    test_instance = TestDiscriminantAnalysis(QDA, SkQDA, theoretical=True, dataset=DatasetsEnum.FISH)
 
     test_instance.dataset_preview()
     test_instance.test_classifier()

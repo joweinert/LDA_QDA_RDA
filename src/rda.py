@@ -42,18 +42,39 @@ class RDA(DiscriminantAnalysis):
 
 
 if __name__ == "__main__":
+    from test import TestDiscriminantAnalysis, DatasetsEnum
     from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as SkQDA
-    from util import DatasetsEnum, TestData
-    import numpy as np
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as SkLDA
 
-    X_train, y_train, X_test, y_test = TestData(DatasetsEnum.FISH).get_train_test_data()
-    rda = RDA(lambda_=0.6, gamma=0.3).fit(X_train, y_train)
-    print("Dataset preview:\nX_test head:\n", X_test[:5])
-    print("\ny_test head:\n", y_test[:5])
+    test_instance_lambda = TestDiscriminantAnalysis(
+        RDA,
+        SkQDA,
+        theoretical=True,
+        classifier_kwargs={"lambda_": 0.3, "gamma": 0},
+        compare_to_kwargs={"reg_param": 0.3},
+        dataset=DatasetsEnum.FISH,
+    )
 
-    rda_preds = rda.predict(X_test)
-    rda_probs = rda.predict_proba(X_test)
+    test_instance_gamma = TestDiscriminantAnalysis(
+        RDA,
+        SkLDA,
+        theoretical=True,
+        classifier_kwargs={"lambda_": 0, "gamma": 0.3},
+        compare_to_kwargs={"solver": "lsqr", "shrinkage": 0.3},
+        dataset=DatasetsEnum.FISH,
+    )
 
-    print("\nRDA predictions:", rda_preds[:5])
+    test_instance_gamma_2 = TestDiscriminantAnalysis(
+        RDA,
+        SkQDA,
+        theoretical=True,
+        classifier_kwargs={"lambda_": 0, "gamma": 0.30},
+        compare_to_kwargs={"reg_param": 0.30},
+        dataset=DatasetsEnum.FISH,
+    )
 
-    print("\nRDA probabilities:\n", rda_probs[:5])
+    test_instance_lambda.dataset_preview()
+    test_instance_lambda.test_classifier()
+    test_instance_gamma.test_classifier()
+    test_instance_gamma_2.test_classifier()
+    print("Well, Sklearn doesnt implement it the same way it seems, life goes onnn")

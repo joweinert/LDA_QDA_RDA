@@ -53,3 +53,12 @@ class LDA(DiscriminantAnalysis):
         loglikelihood = beta.T @ x + beta0
 
         return loglikelihood
+
+if __name__ == "__main__":
+    from test import TestDiscriminantAnalysis, DatasetsEnum
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as SkLDA
+
+    test_instance = TestDiscriminantAnalysis(LDA, SkLDA, theoretical=True, dataset=DatasetsEnum.FISH)
+
+    test_instance.dataset_preview()
+    test_instance.test_classifier()
